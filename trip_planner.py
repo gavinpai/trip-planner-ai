@@ -135,7 +135,7 @@ class TripPlanner:
             Text chunks as they arrive from the API
         """
         try:
-            message = self.client.messages.create(
+            with self.client.messages.stream(
                 model="claude-3-5-haiku-20241022",
                 max_tokens=2048,
                 messages=[
