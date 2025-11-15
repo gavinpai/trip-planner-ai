@@ -5,6 +5,7 @@ A Python script that uses Claude AI to recommend the best travel destinations ba
 ## Features
 
 - 🗓️ **Date-based recommendations**: Get travel suggestions optimized for your specific travel dates
+- 🌤️ **Real weather data**: Uses live weather forecasts from WeatherAPI to provide accurate weather information (optional)
 - 🌍 **Seasonal awareness**: Claude considers weather, seasonal activities, and events for each destination
 - 🎯 **Personalized preferences**: Filter by budget, interests, regions, and climate preferences
 - 🤖 **Powered by Claude**: Leverages Claude Sonnet 4.5 for intelligent, contextual recommendations
@@ -13,6 +14,7 @@ A Python script that uses Claude AI to recommend the best travel destinations ba
 
 - Python 3.7 or higher
 - Anthropic API key ([Get one here](https://console.anthropic.com/))
+- Weather API key (Optional - [Get free key here](https://www.weatherapi.com/signup.aspx))
 
 ## Quick Start
 
@@ -40,15 +42,20 @@ cd trip-planner-ai
 pip install -r requirements.txt
 ```
 
-3. Set up your API key:
+3. Set up your API keys:
 ```bash
 # Copy the example env file
 cp .env.example .env
 
-# Edit .env and add your API key
-# Or export it directly:
+# Edit .env and add your API keys
+# Or export them directly:
 export ANTHROPIC_API_KEY='your-api-key-here'
+
+# Optional: Add weather API key for real weather data
+export WEATHER_API_KEY='your-weather-api-key-here'
 ```
+
+**Note**: The weather API key is optional. If not provided, the app will still work but will rely on Claude's knowledge for weather information instead of real-time data.
 
 ## Usage
 
@@ -100,10 +107,13 @@ You can also import and use the `TripPlanner` class in your own Python scripts:
 ```python
 from trip_planner import TripPlanner
 
-# Initialize with API key
-planner = TripPlanner(api_key="your-api-key")
+# Initialize with API keys (weather API key is optional)
+planner = TripPlanner(
+    api_key="your-api-key",
+    weather_api_key="your-weather-api-key"  # Optional
+)
 
-# Get recommendations
+# Get recommendations (with real weather data if weather_api_key is provided)
 recommendations = planner.get_travel_recommendations(
     start_date="2025-07-15",
     end_date="2025-07-25",
@@ -124,9 +134,10 @@ See `example_usage.py` for more examples.
 
 ### TripPlanner Class
 
-#### `__init__(api_key: str = None)`
+#### `__init__(api_key: str = None, weather_api_key: str = None)`
 Initialize the trip planner.
-- **api_key**: Optional. Defaults to `ANTHROPIC_API_KEY` environment variable
+- **api_key**: Optional. Anthropic API key. Defaults to `ANTHROPIC_API_KEY` environment variable
+- **weather_api_key**: Optional. Weather API key for real weather data. Defaults to `WEATHER_API_KEY` environment variable. If not provided, recommendations will be based on Claude's knowledge.
 
 #### `get_travel_recommendations(start_date: str, end_date: str, preferences: dict = None) -> str`
 Get travel recommendations from Claude.
@@ -207,9 +218,19 @@ trip-planner-ai/
 
 1. **Date Validation**: The script validates your input dates and calculates trip duration
 2. **Seasonal Analysis**: It identifies the month and season of your travel dates
-3. **Prompt Building**: Creates a detailed prompt for Claude including dates, duration, and preferences
-4. **AI Processing**: Claude analyzes the information and generates personalized recommendations
-5. **Results**: Returns detailed recommendations with explanations for each destination
+3. **Weather Data Fetching** (Optional): If a weather API key is provided, fetches real-time weather forecasts for popular destinations
+4. **Prompt Building**: Creates a detailed prompt for Claude including dates, duration, preferences, and real weather data
+5. **AI Processing**: Claude analyzes the information and generates personalized recommendations based on actual weather conditions
+6. **Results**: Returns detailed recommendations with explanations for each destination
+
+### Weather Integration Details
+
+When a weather API key is provided:
+- For trips within the next 14 days: Fetches accurate weather forecasts
+- For trips beyond 14 days: Uses current weather as a reference point
+- Supports region-specific weather data (when region preference is specified)
+- Covers major destinations across Europe, Asia, Americas, Africa, Oceania, and Middle East
+- Gracefully falls back to Claude's knowledge if weather API is unavailable
 
 ## Developer Documentation
 
