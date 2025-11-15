@@ -14,7 +14,20 @@ A Python script that uses Claude AI to recommend the best travel destinations ba
 - Python 3.7 or higher
 - Anthropic API key ([Get one here](https://console.anthropic.com/))
 
-## Installation
+## Quick Start
+
+### Automated Setup (Recommended)
+
+```bash
+# Clone and setup in one go
+git clone <repository-url>
+cd trip-planner-ai
+./setup.sh
+```
+
+The setup script will install dependencies, run tests, and verify everything works.
+
+### Manual Installation
 
 1. Clone this repository:
 ```bash
@@ -173,13 +186,18 @@ See [TESTING.md](TESTING.md) for detailed testing documentation.
 
 ```
 trip-planner-ai/
+├── .claude/
+│   ├── claude.md           # Session guide for Claude Code
+│   └── QUICKREF.md         # Quick reference card
 ├── trip_planner.py         # Main script with TripPlanner class
 ├── test_trip_planner.py    # Comprehensive test suite
 ├── example_usage.py        # Example usage script
+├── setup.sh                # Automated setup script
 ├── requirements.txt        # Python dependencies
 ├── pytest.ini              # Pytest configuration
 ├── Makefile                # Test runner shortcuts
 ├── TESTING.md              # Testing documentation
+├── BUGFIXES.md             # Bug fix documentation
 ├── .env.example           # Example environment variables
 ├── .gitignore             # Git ignore file
 └── README.md              # This file
@@ -192,6 +210,31 @@ trip-planner-ai/
 3. **Prompt Building**: Creates a detailed prompt for Claude including dates, duration, and preferences
 4. **AI Processing**: Claude analyzes the information and generates personalized recommendations
 5. **Results**: Returns detailed recommendations with explanations for each destination
+
+## Developer Documentation
+
+### For Claude Code Sessions
+
+When working on this project in Claude Code, see:
+- **[.claude/claude.md](.claude/claude.md)** - Complete session guide with environment setup, common issues, and solutions
+- **[.claude/QUICKREF.md](.claude/QUICKREF.md)** - Quick reference card for common commands
+
+**Important**: Always use `python3 -m pytest` instead of `pytest` when running tests in this environment.
+
+### Documentation Files
+
+- **[TESTING.md](TESTING.md)** - Comprehensive testing guide
+- **[BUGFIXES.md](BUGFIXES.md)** - Documentation of bugs found and fixed
+- **[requirements.txt](requirements.txt)** - All dependencies with versions
+
+### Development Workflow
+
+1. Run setup: `./setup.sh`
+2. Make changes to code
+3. Run tests: `python3 -m pytest -v`
+4. Check coverage: `python3 -m pytest --cov=trip_planner --cov-report=term-missing`
+5. Commit changes with descriptive message
+6. Push to feature branch
 
 ## License
 
