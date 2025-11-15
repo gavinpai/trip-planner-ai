@@ -322,6 +322,97 @@ class TestIntegration:
             assert result == "Budget-friendly beach destinations..."
 
 
+class TestStreamingFunctionality:
+    """Test streaming functionality"""
+
+    @pytest.fixture
+    def planner(self):
+        """Create a TripPlanner instance"""
+        return TripPlanner(api_key="test-key")
+
+    def test_streaming_mode(self, planner):
+        """Test that streaming mode yields text chunks"""
+        # Mock the streaming context manager
+        mock_stream = MagicMock()
+        mock_stream.__enter__ = Mock(return_value=mock_stream)
+        mock_stream.__exit__ = Mock(return_value=False)
+        mock_stream.text_stream = iter(["Hello ", "world", "!"])
+
+        with patch.object(planner.client.messages, 'stream', return_value=mock_stream):
+            chunks = list(planner.get_travel_recommendations(
+                "2025-07-15",
+                "2025-07-25",
+                stream=True
+            ))
+            assert chunks == ["Hello ", "world", "!"]
+
+    def test_non_streaming_mode(self, planner):
+        """Test that non-streaming mode returns complete text"""
+        mock_response = Mock()
+        mock_content = Mock()
+        mock_content.text = "Complete response"
+        mock_response.content = [mock_content]
+
+        with patch.object(planner.client.messages, 'create', return_value=mock_response):
+            result = planner.get_travel_recommendations(
+                "2025-07-15",
+                "2025-07-25",
+                stream=False
+            )
+            assert result == "Complete response"
+
+    def test_streaming_default_false(self, planner):
+        """Test that streaming defaults to False"""
+        mock_response = Mock()
+        mock_content = Mock()
+        mock_content.text = "Complete response"
+        mock_response.content = [mock_content]
+
+        with patch.object(planner.client.messages, 'create', return_value=mock_response):
+            # Not passing stream parameter should default to False
+            result = planner.get_travel_recommendations(
+                "2025-07-15",
+                "2025-07-25"
+            )
+            assert result == "Complete response"
+
+    def test_streaming_with_preferences(self, planner):
+        """Test streaming mode with preferences"""
+        mock_stream = MagicMock()
+        mock_stream.__enter__ = Mock(return_value=mock_stream)
+        mock_stream.__exit__ = Mock(return_value=False)
+        mock_stream.text_stream = iter(["Paris", ", ", "Rome"])
+
+        preferences = {
+            "budget": "medium",
+            "interests": ["culture", "food"],
+            "region": "Europe"
+        }
+
+        with patch.object(planner.client.messages, 'stream', return_value=mock_stream):
+            chunks = list(planner.get_travel_recommendations(
+                "2025-07-15",
+                "2025-07-25",
+                preferences=preferences,
+                stream=True
+            ))
+            assert chunks == ["Paris", ", ", "Rome"]
+
+    def test_streaming_error_handling(self, planner):
+        """Test error handling in streaming mode"""
+        with patch.object(
+            planner.client.messages,
+            'stream',
+            side_effect=Exception("Streaming API Error")
+        ):
+            with pytest.raises(Exception, match="Error calling Claude API"):
+                list(planner.get_travel_recommendations(
+                    "2025-07-15",
+                    "2025-07-25",
+                    stream=True
+                ))
+
+
 class TestEdgeCases:
     """Test edge cases and boundary conditions"""
 
