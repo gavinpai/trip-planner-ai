@@ -35,6 +35,13 @@ env/
 *.swo
 *~
 
+# Testing
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.coverage.*
+
 # OS
 .DS_Store
 Thumbs.db

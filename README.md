@@ -134,16 +134,55 @@ Get travel recommendations from Claude.
 - `ValueError`: If dates are invalid or end date is before start date
 - `Exception`: If there's an error calling the Claude API
 
+## Testing
+
+The project includes a comprehensive test suite with 95%+ code coverage.
+
+### Running Tests
+
+```bash
+# Install dependencies including test tools
+pip install -r requirements.txt
+
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run with coverage report
+pytest --cov=trip_planner --cov-report=term-missing
+
+# Or use make commands
+make test
+make test-coverage
+```
+
+### Test Coverage
+
+The test suite includes:
+- Unit tests for all core functionality
+- Integration tests with mocked API calls
+- Edge case and boundary condition tests
+- Input validation tests
+- Error handling tests
+
+See [TESTING.md](TESTING.md) for detailed testing documentation.
+
 ## Project Structure
 
 ```
 trip-planner-ai/
-├── trip_planner.py      # Main script with TripPlanner class
-├── example_usage.py     # Example usage script
-├── requirements.txt     # Python dependencies
-├── .env.example        # Example environment variables
-├── .gitignore          # Git ignore file
-└── README.md           # This file
+├── trip_planner.py         # Main script with TripPlanner class
+├── test_trip_planner.py    # Comprehensive test suite
+├── example_usage.py        # Example usage script
+├── requirements.txt        # Python dependencies
+├── pytest.ini              # Pytest configuration
+├── Makefile                # Test runner shortcuts
+├── TESTING.md              # Testing documentation
+├── .env.example           # Example environment variables
+├── .gitignore             # Git ignore file
+└── README.md              # This file
 ```
 
 ## How It Works

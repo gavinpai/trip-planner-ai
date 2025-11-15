@@ -38,10 +38,16 @@ class TripPlanner:
         Returns:
             True if valid, False otherwise
         """
+        if date_string is None or not isinstance(date_string, str):
+            return False
+
+        if not date_string.strip():
+            return False
+
         try:
             datetime.strptime(date_string, "%Y-%m-%d")
             return True
-        except ValueError:
+        except (ValueError, TypeError):
             return False
 
     def get_travel_recommendations(
@@ -77,7 +83,19 @@ class TripPlanner:
         duration = (end - start).days
 
         if duration < 0:
-            raise ValueError("End date must be after start date")
+            raise ValueError("End date must be on or after start date")
+
+        # Validate preferences if provided
+        if preferences is not None:
+            if not isinstance(preferences, dict):
+                raise ValueError("Preferences must be a dictionary")
+
+            # Validate interests is a list if provided
+            if "interests" in preferences and preferences["interests"] is not None:
+                if not isinstance(preferences["interests"], list):
+                    raise ValueError("Interests must be a list of strings")
+                if not all(isinstance(i, str) for i in preferences["interests"]):
+                    raise ValueError("All interests must be strings")
 
         # Build the prompt with date range and preferences
         prompt = self._build_prompt(start_date, end_date, duration, preferences)
@@ -137,7 +155,7 @@ Please recommend the best places to visit during this time period. Consider:
             if preferences.get("budget"):
                 prompt += f"- Budget: {preferences['budget']}\n"
 
-            if preferences.get("interests"):
+            if preferences.get("interests") and len(preferences["interests"]) > 0:
                 interests = ", ".join(preferences["interests"])
                 prompt += f"- Interests: {interests}\n"
 
