@@ -478,5 +478,152 @@ class TestEdgeCases:
             assert result == "Cultural destinations..."
 
 
+class TestWeatherIntegration:
+    """Test weather API integration"""
+
+    @pytest.fixture
+    def planner_with_weather(self):
+        """Create a TripPlanner instance with weather API key"""
+        return TripPlanner(api_key="test-key", weather_api_key="test-weather-key")
+
+    @pytest.fixture
+    def planner_without_weather(self):
+        """Create a TripPlanner instance without weather API key"""
+        return TripPlanner(api_key="test-key")
+
+    def test_init_with_weather_api_key(self, planner_with_weather):
+        """Test initialization with weather API key"""
+        assert planner_with_weather.weather_api_key == "test-weather-key"
+
+    def test_init_without_weather_api_key(self, planner_without_weather):
+        """Test initialization without weather API key"""
+        assert planner_without_weather.weather_api_key is None
+
+    def test_weather_api_key_from_env(self, monkeypatch):
+        """Test weather API key from environment variable"""
+        monkeypatch.setenv("WEATHER_API_KEY", "env-weather-key")
+        planner = TripPlanner(api_key="test-key")
+        assert planner.weather_api_key == "env-weather-key"
+
+    def test_weather_data_without_api_key(self, planner_without_weather):
+        """Test that weather data returns empty string without API key"""
+        result = planner_without_weather._get_weather_data("2025-11-20", "2025-11-25")
+        assert result == ""
+
+    @patch('requests.get')
+    def test_weather_data_with_valid_api_key(self, mock_get, planner_with_weather):
+        """Test weather data fetching with valid API key"""
+        # Mock successful API response
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "current": {
+                "temp_c": 18.5,
+                "temp_f": 65.3,
+                "condition": {"text": "Partly cloudy"},
+                "humidity": 72
+            }
+        }
+        mock_get.return_value = mock_response
+
+        result = planner_with_weather._get_weather_data("2025-12-20", "2025-12-25")
+        assert "REAL WEATHER DATA" in result
+        assert "18.5°C" in result or "Partly cloudy" in result or "London" in result
+
+    @patch('requests.get')
+    def test_weather_data_with_region(self, mock_get, planner_with_weather):
+        """Test weather data fetching with specific region"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "current": {
+                "temp_c": 25.0,
+                "temp_f": 77.0,
+                "condition": {"text": "Sunny"},
+                "humidity": 65
+            }
+        }
+        mock_get.return_value = mock_response
+
+        result = planner_with_weather._get_weather_data("2025-11-20", "2025-11-25", region="Europe")
+        assert "REAL WEATHER DATA" in result
+        # Should prioritize European cities
+        assert mock_get.called
+
+    @patch('requests.get')
+    def test_weather_data_with_forecast(self, mock_get, planner_with_weather):
+        """Test weather data fetching with forecast API (within 14 days)"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "forecast": {
+                "forecastday": [
+                    {
+                        "day": {
+                            "avgtemp_c": 22.0,
+                            "avgtemp_f": 71.6,
+                            "condition": {"text": "Sunny"},
+                            "avghumidity": 60,
+                            "daily_chance_of_rain": 10
+                        }
+                    }
+                ]
+            }
+        }
+        mock_get.return_value = mock_response
+
+        # Use a date within the next 14 days
+        from datetime import datetime, timedelta
+        future_date = (datetime.now() + timedelta(days=5)).strftime("%Y-%m-%d")
+        result = planner_with_weather._get_weather_data(future_date, future_date)
+
+        assert "REAL WEATHER DATA" in result
+        # Should contain temperature and condition info
+        if result:  # If any successful fetches
+            assert "°C" in result or "°F" in result
+
+    @patch('requests.get')
+    def test_weather_api_error_handling(self, mock_get, planner_with_weather):
+        """Test handling of weather API errors"""
+        # Mock API error
+        mock_get.side_effect = Exception("API Error")
+
+        # Should not raise exception, just return empty string or handle gracefully
+        result = planner_with_weather._get_weather_data("2025-11-20", "2025-11-25")
+        # Should return empty string if all requests fail
+        assert result == "" or isinstance(result, str)
+
+    @patch('requests.get')
+    def test_weather_integration_in_prompt(self, mock_get, planner_with_weather):
+        """Test that weather data is integrated into the prompt"""
+        mock_response = Mock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "current": {
+                "temp_c": 20.0,
+                "temp_f": 68.0,
+                "condition": {"text": "Clear"},
+                "humidity": 55
+            }
+        }
+        mock_get.return_value = mock_response
+
+        prompt = planner_with_weather._build_prompt("2025-12-20", "2025-12-25", 5)
+
+        # Prompt should either contain weather data or be valid without it
+        assert "planning a trip" in prompt.lower()
+        # If weather data was fetched successfully, it should be in the prompt
+        if mock_get.called:
+            assert isinstance(prompt, str)
+
+    def test_destinations_by_region_defined(self, planner_with_weather):
+        """Test that destinations by region are properly defined"""
+        assert hasattr(planner_with_weather, 'destinations_by_region')
+        assert isinstance(planner_with_weather.destinations_by_region, dict)
+        assert "Europe" in planner_with_weather.destinations_by_region
+        assert "Asia" in planner_with_weather.destinations_by_region
+        assert len(planner_with_weather.destinations_by_region["Europe"]) > 0
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

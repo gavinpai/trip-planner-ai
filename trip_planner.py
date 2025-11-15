@@ -6,19 +6,21 @@ Uses Claude API to generate personalized travel recommendations
 
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from anthropic import Anthropic
+import requests
 
 
 class TripPlanner:
     """Main class for trip planning using Claude AI"""
 
-    def __init__(self, api_key: str = None):
+    def __init__(self, api_key: str = None, weather_api_key: str = None):
         """
         Initialize the trip planner with Claude API
 
         Args:
             api_key: Anthropic API key (defaults to ANTHROPIC_API_KEY env var)
+            weather_api_key: Weather API key (defaults to WEATHER_API_KEY env var, optional)
         """
         self.api_key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not self.api_key:
@@ -27,6 +29,17 @@ class TripPlanner:
                 "or pass api_key parameter"
             )
         self.client = Anthropic(api_key=self.api_key)
+        self.weather_api_key = weather_api_key or os.environ.get("WEATHER_API_KEY")
+
+        # Define popular destinations by region for weather lookups
+        self.destinations_by_region = {
+            "Europe": ["London,UK", "Paris,France", "Rome,Italy", "Barcelona,Spain", "Amsterdam,Netherlands"],
+            "Asia": ["Tokyo,Japan", "Bangkok,Thailand", "Singapore", "Bali,Indonesia", "Seoul,South Korea"],
+            "Americas": ["New York,USA", "Cancun,Mexico", "Rio de Janeiro,Brazil", "Vancouver,Canada", "Buenos Aires,Argentina"],
+            "Africa": ["Cape Town,South Africa", "Marrakech,Morocco", "Cairo,Egypt", "Nairobi,Kenya", "Zanzibar,Tanzania"],
+            "Oceania": ["Sydney,Australia", "Auckland,New Zealand", "Fiji", "Bora Bora,French Polynesia", "Melbourne,Australia"],
+            "Middle East": ["Dubai,UAE", "Istanbul,Turkey", "Jerusalem,Israel", "Petra,Jordan", "Muscat,Oman"]
+        }
 
     def validate_date(self, date_string: str) -> bool:
         """
@@ -173,8 +186,12 @@ class TripPlanner:
         start = datetime.strptime(start_date, "%Y-%m-%d")
         start_month = start.strftime("%B")
 
-        prompt = f"""I'm planning a trip from {start_date} to {end_date} ({duration} days).
+        # Fetch real weather data if API key is available
+        region = preferences.get("region") if preferences else None
+        weather_data = self._get_weather_data(start_date, end_date, region)
 
+        prompt = f"""I'm planning a trip from {start_date} to {end_date} ({duration} days).
+{weather_data}
 Please recommend the best places to visit during this time period. Consider:
 - The travel dates are in {start_month}, so recommend destinations with good weather and seasonal activities during this time
 - The trip duration is {duration} days
@@ -207,6 +224,104 @@ Please provide:
 Format the response in a clear, organized way."""
 
         return prompt
+
+    def _get_weather_data(self, start_date: str, end_date: str, region: str = None) -> str:
+        """
+        Fetch real weather forecast data for relevant destinations
+
+        Args:
+            start_date: Trip start date (YYYY-MM-DD)
+            end_date: Trip end date (YYYY-MM-DD)
+            region: Preferred region (optional)
+
+        Returns:
+            Formatted weather data string to include in the prompt
+        """
+        if not self.weather_api_key:
+            return ""
+
+        # Determine which destinations to check
+        destinations = []
+        if region and region in self.destinations_by_region:
+            destinations = self.destinations_by_region[region]
+        else:
+            # Sample destinations from multiple regions
+            destinations = [
+                "London,UK", "Paris,France", "Tokyo,Japan", "Bangkok,Thailand",
+                "New York,USA", "Cancun,Mexico", "Sydney,Australia", "Dubai,UAE"
+            ]
+
+        # Calculate days ahead for forecast (WeatherAPI supports up to 14 days forecast)
+        start = datetime.strptime(start_date, "%Y-%m-%d")
+        days_ahead = (start - datetime.now()).days
+
+        weather_info = "\n--- REAL WEATHER DATA ---\n"
+        weather_info += f"Weather forecasts for {start_date}:\n\n"
+
+        successful_fetches = 0
+        for destination in destinations[:5]:  # Limit to 5 destinations to keep prompt reasonable
+            try:
+                # Use forecast API if within 14 days, otherwise use historical averages via current weather
+                if 0 <= days_ahead <= 14:
+                    # Forecast API
+                    url = f"http://api.weatherapi.com/v1/forecast.json"
+                    params = {
+                        "key": self.weather_api_key,
+                        "q": destination,
+                        "days": min(days_ahead + 1, 14),
+                        "aqi": "no",
+                        "alerts": "no"
+                    }
+                else:
+                    # For dates beyond 14 days, use current weather as a reference
+                    # (WeatherAPI doesn't support long-term forecasts in free tier)
+                    url = f"http://api.weatherapi.com/v1/current.json"
+                    params = {
+                        "key": self.weather_api_key,
+                        "q": destination,
+                        "aqi": "no"
+                    }
+
+                response = requests.get(url, params=params, timeout=5)
+                response.raise_for_status()
+                data = response.json()
+
+                if 0 <= days_ahead <= 14 and "forecast" in data:
+                    # Get the forecast for the start date
+                    forecast_day = data["forecast"]["forecastday"][-1]["day"]
+                    temp_c = forecast_day["avgtemp_c"]
+                    temp_f = forecast_day["avgtemp_f"]
+                    condition = forecast_day["condition"]["text"]
+                    humidity = forecast_day["avghumidity"]
+                    rain_chance = forecast_day.get("daily_chance_of_rain", 0)
+
+                    weather_info += f"{destination}: {temp_c}°C ({temp_f}°F), {condition}, "
+                    weather_info += f"Humidity: {humidity}%, Rain chance: {rain_chance}%\n"
+                else:
+                    # Use current weather as reference
+                    current = data["current"]
+                    temp_c = current["temp_c"]
+                    temp_f = current["temp_f"]
+                    condition = current["condition"]["text"]
+                    humidity = current["humidity"]
+
+                    weather_info += f"{destination} (current/typical): {temp_c}°C ({temp_f}°F), "
+                    weather_info += f"{condition}, Humidity: {humidity}%\n"
+
+                successful_fetches += 1
+
+            except Exception as e:
+                # Silently skip failed requests to avoid breaking the flow
+                continue
+
+        if successful_fetches == 0:
+            return ""
+
+        weather_info += "\nUse this REAL weather data to make informed recommendations. "
+        weather_info += "Prioritize destinations with favorable weather conditions.\n"
+        weather_info += "--- END WEATHER DATA ---\n\n"
+
+        return weather_info
 
 
 def main():
