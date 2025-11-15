@@ -286,7 +286,7 @@ class TestIntegration:
             call_args = mock_create.call_args
 
             # Verify correct model
-            assert call_args.kwargs["model"] == "claude-sonnet-4-5-20250929"
+            assert call_args.kwargs["model"] == "claude-3-5-haiku-20241022"
 
             # Verify result
             assert result == "Visit Paris, Rome, and Barcelona!"
