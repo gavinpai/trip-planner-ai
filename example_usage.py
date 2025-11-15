@@ -15,12 +15,13 @@ def example_basic_usage():
 
     planner = TripPlanner()
 
-    recommendations = planner.get_travel_recommendations(
+    for chunk in planner.get_travel_recommendations(
         start_date="2025-12-20",
-        end_date="2025-12-30"
-    )
+        end_date="2025-12-30",
+        stream=True
+    ):
+        print(chunk, end='', flush=True)
 
-    print(recommendations)
     print("\n")
 
 
@@ -32,7 +33,7 @@ def example_with_preferences():
 
     planner = TripPlanner()
 
-    recommendations = planner.get_travel_recommendations(
+    for chunk in planner.get_travel_recommendations(
         start_date="2025-07-15",
         end_date="2025-07-25",
         preferences={
@@ -40,10 +41,11 @@ def example_with_preferences():
             "interests": ["culture", "food", "history"],
             "region": "Europe",
             "climate": "warm"
-        }
-    )
+        },
+        stream=True
+    ):
+        print(chunk, end='', flush=True)
 
-    print(recommendations)
     print("\n")
 
 
@@ -55,17 +57,18 @@ def example_adventure_trip():
 
     planner = TripPlanner()
 
-    recommendations = planner.get_travel_recommendations(
+    for chunk in planner.get_travel_recommendations(
         start_date="2025-09-01",
         end_date="2025-09-14",
         preferences={
             "budget": "high",
             "interests": ["adventure", "nature", "hiking", "wildlife"],
             "climate": "moderate"
-        }
-    )
+        },
+        stream=True
+    ):
+        print(chunk, end='', flush=True)
 
-    print(recommendations)
     print("\n")
 
 
@@ -77,17 +80,18 @@ def example_budget_beach_vacation():
 
     planner = TripPlanner()
 
-    recommendations = planner.get_travel_recommendations(
+    for chunk in planner.get_travel_recommendations(
         start_date="2025-06-01",
         end_date="2025-06-08",
         preferences={
             "budget": "low",
             "interests": ["beaches", "relaxation", "snorkeling"],
             "climate": "warm"
-        }
-    )
+        },
+        stream=True
+    ):
+        print(chunk, end='', flush=True)
 
-    print(recommendations)
     print("\n")
 
 
@@ -99,17 +103,18 @@ def example_winter_getaway():
 
     planner = TripPlanner()
 
-    recommendations = planner.get_travel_recommendations(
+    for chunk in planner.get_travel_recommendations(
         start_date="2026-01-10",
         end_date="2026-01-20",
         preferences={
             "budget": "medium",
             "interests": ["skiing", "winter sports", "cozy atmosphere"],
             "climate": "cold"
-        }
-    )
+        },
+        stream=True
+    ):
+        print(chunk, end='', flush=True)
 
-    print(recommendations)
     print("\n")
 
 

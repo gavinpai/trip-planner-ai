@@ -54,8 +54,9 @@ class TripPlanner:
         self,
         start_date: str,
         end_date: str,
-        preferences: dict = None
-    ) -> str:
+        preferences: dict = None,
+        stream: bool = False
+    ):
         """
         Get travel recommendations from Claude based on date range
 
@@ -67,9 +68,10 @@ class TripPlanner:
                 - interests: list of interests (e.g., culture, nature, adventure)
                 - region: preferred region (e.g., Europe, Asia, Americas)
                 - climate: preferred climate (warm, cold, moderate)
+            stream: If True, yields text chunks as they arrive. If False, returns complete string.
 
         Returns:
-            String with travel recommendations from Claude
+            Generator yielding text chunks if stream=True, or complete string if stream=False
         """
         # Validate dates
         if not self.validate_date(start_date):
@@ -102,6 +104,37 @@ class TripPlanner:
 
         # Call Claude API
         try:
+            if stream:
+                # Return a generator for streaming
+                return self._stream_response(prompt)
+            else:
+                # Return complete response
+                message = self.client.messages.create(
+                    model="claude-sonnet-4-5-20250929",
+                    max_tokens=2048,
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+                return message.content[0].text
+
+        except Exception as e:
+            raise Exception(f"Error calling Claude API: {str(e)}")
+
+    def _stream_response(self, prompt: str):
+        """
+        Internal method to stream the response from Claude API
+
+        Args:
+            prompt: The prompt to send to Claude
+
+        Yields:
+            Text chunks as they arrive from the API
+        """
+        try:
             message = self.client.messages.create(
                 model="claude-3-5-haiku-20241022",
                 max_tokens=2048,
@@ -111,10 +144,9 @@ class TripPlanner:
                         "content": prompt
                     }
                 ]
-            )
-
-            return message.content[0].text
-
+            ) as stream:
+                for text in stream.text_stream:
+                    yield text
         except Exception as e:
             raise Exception(f"Error calling Claude API: {str(e)}")
 
@@ -224,13 +256,15 @@ def main():
         print("=" * 60)
         print()
 
-        recommendations = planner.get_travel_recommendations(
+        # Stream the recommendations
+        for chunk in planner.get_travel_recommendations(
             start_date,
             end_date,
-            preferences if preferences else None
-        )
+            preferences if preferences else None,
+            stream=True
+        ):
+            print(chunk, end='', flush=True)
 
-        print(recommendations)
         print("\n" + "=" * 60)
 
     except ValueError as e:
