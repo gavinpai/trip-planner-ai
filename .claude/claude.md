@@ -6,6 +6,20 @@ This document contains essential information for working on this project in Clau
 
 Trip Planner AI - A Python application that uses the Claude API to recommend travel destinations based on date ranges and user preferences.
 
+## Automatic Dependency Management
+
+**IMPORTANT**: This project has a SessionStart hook (`.claude/hooks/SessionStart`) that automatically checks and installs dependencies at the start of each session.
+
+- **What it does**: Automatically runs `pip install -r requirements.txt` if dependencies are missing
+- **Why it exists**: Prevents `ModuleNotFoundError: No module named 'anthropic'` errors
+- **How it works**: Executes at session start before any other commands
+- **No action required**: Dependencies are installed automatically
+
+If you see dependency errors, the hook may not have run. Manually install with:
+```bash
+pip install -r requirements.txt
+```
+
 ## Environment Setup
 
 ### Critical: Python Environment Issues
@@ -20,6 +34,28 @@ pytest
 python3 -m pytest
 ```
 
+### MANDATORY: Dependency Check Before Running Tests
+
+**⚠️ CRITICAL - ALWAYS DO THIS FIRST ⚠️**
+
+Before running ANY tests or pytest commands, ALWAYS verify dependencies are installed:
+
+```bash
+# 1. FIRST - Check if anthropic module is installed
+python3 -c "import anthropic" 2>/dev/null && echo "✓ Dependencies OK" || echo "✗ Need to install dependencies"
+
+# 2. If check fails, install dependencies immediately
+pip install -r requirements.txt
+
+# 3. THEN and ONLY THEN run tests
+python3 -m pytest -v
+```
+
+**Why this matters:**
+- Running pytest without dependencies installed will cause `ModuleNotFoundError: No module named 'anthropic'`
+- This wastes time and creates confusing error messages
+- ALWAYS verify first, test second
+
 ### Installing Dependencies
 
 On first setup or when dependencies are missing:
@@ -33,6 +69,24 @@ pip install anthropic python-dotenv pytest pytest-cov pytest-mock
 ```
 
 **Note**: You may see warnings about running pip as root - these are expected in this environment and can be ignored.
+
+### Pre-Test Checklist (USE THIS EVERY TIME)
+
+Before running tests in any session:
+
+```bash
+# Step 1: Verify Python syntax is valid (catches syntax errors early)
+python3 -m py_compile trip_planner.py && echo "✓ Syntax valid"
+
+# Step 2: Verify dependencies are installed (prevents ModuleNotFoundError)
+python3 -c "import anthropic, pytest" && echo "✓ Dependencies installed"
+
+# Step 3: If Step 2 fails, install now
+# pip install -r requirements.txt
+
+# Step 4: NOW run tests
+python3 -m pytest -v
+```
 
 ## Running Tests
 
@@ -74,9 +128,12 @@ make clean          # Clean up test artifacts
 ```
 trip-planner-ai/
 ├── .claude/
-│   └── claude.md           # This file - session guide
+│   ├── hooks/
+│   │   └── SessionStart    # Auto-install dependencies hook
+│   ├── claude.md           # This file - session guide
+│   └── QUICKREF.md         # Quick reference guide
 ├── trip_planner.py         # Main application
-├── test_trip_planner.py    # Test suite (39 tests)
+├── test_trip_planner.py    # Test suite (44 tests)
 ├── example_usage.py        # Usage examples
 ├── requirements.txt        # Dependencies
 ├── pytest.ini              # Pytest configuration
@@ -256,11 +313,14 @@ python3 -m pytest test_trip_planner.py::TestDateValidation::test_valid_date -vv 
 ## Session Checklist
 
 At the start of each session:
+- [ ] **FIRST**: Check dependencies installed: `python3 -c "import anthropic, pytest" && echo "✓ OK" || pip install -r requirements.txt`
 - [ ] Verify Python environment: `python3 --version`
-- [ ] Check dependencies: `pip list | grep -E "anthropic|pytest"`
+- [ ] Check syntax is valid: `python3 -m py_compile trip_planner.py`
 - [ ] Verify tests pass: `python3 -m pytest`
 - [ ] Check current branch: `git branch --show-current`
-- [ ] Pull latest changes: `git pull origin claude/travel-recommendations-api-01BRncuaM6ktWvyNoHhV9EmS`
+- [ ] Pull latest changes if needed: `git pull origin <branch-name>`
+
+**REMEMBER**: Never run `pytest` or tests without first confirming dependencies are installed!
 
 ## Additional Resources
 

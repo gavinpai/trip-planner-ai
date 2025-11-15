@@ -1,0 +1,23 @@
+#!/bin/bash
+# SessionStart Hook - Auto-install dependencies
+# This hook runs at the start of each Claude Code session
+
+echo "🔍 Checking Python dependencies..."
+
+# Check if dependencies are installed
+if python3 -c "import anthropic, pytest" 2>/dev/null; then
+    echo "✓ All dependencies are installed"
+else
+    echo "⚠️  Dependencies missing - installing now..."
+    pip install -r requirements.txt --quiet
+
+    # Verify installation succeeded
+    if python3 -c "import anthropic, pytest" 2>/dev/null; then
+        echo "✓ Dependencies successfully installed"
+    else
+        echo "❌ Failed to install dependencies - please run: pip install -r requirements.txt"
+        exit 1
+    fi
+fi
+
+echo ""
