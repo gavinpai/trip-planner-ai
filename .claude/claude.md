@@ -6,6 +6,20 @@ This document contains essential information for working on this project in Clau
 
 Trip Planner AI - A Python application that uses the Claude API to recommend travel destinations based on date ranges and user preferences.
 
+## Automatic Dependency Management
+
+**IMPORTANT**: This project has a SessionStart hook (`.claude/hooks/SessionStart`) that automatically checks and installs dependencies at the start of each session.
+
+- **What it does**: Automatically runs `pip install -r requirements.txt` if dependencies are missing
+- **Why it exists**: Prevents `ModuleNotFoundError: No module named 'anthropic'` errors
+- **How it works**: Executes at session start before any other commands
+- **No action required**: Dependencies are installed automatically
+
+If you see dependency errors, the hook may not have run. Manually install with:
+```bash
+pip install -r requirements.txt
+```
+
 ## Environment Setup
 
 ### Critical: Python Environment Issues
@@ -114,9 +128,12 @@ make clean          # Clean up test artifacts
 ```
 trip-planner-ai/
 ├── .claude/
-│   └── claude.md           # This file - session guide
+│   ├── hooks/
+│   │   └── SessionStart    # Auto-install dependencies hook
+│   ├── claude.md           # This file - session guide
+│   └── QUICKREF.md         # Quick reference guide
 ├── trip_planner.py         # Main application
-├── test_trip_planner.py    # Test suite (39 tests)
+├── test_trip_planner.py    # Test suite (44 tests)
 ├── example_usage.py        # Usage examples
 ├── requirements.txt        # Dependencies
 ├── pytest.ini              # Pytest configuration
